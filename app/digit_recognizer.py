@@ -12,7 +12,12 @@
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras import layers, models
 from tensorflow.keras.models import load_model as keras_load_model
+
+# Source: https://www.tensorflow.org/api_docs/python/tf/keras/models/load_model
+# Source: https://numpy.org/doc/stable/reference/generated/numpy.stack.html
+# Source: https://numpy.org/doc/stable/reference/generated/numpy.argmax.html
 
 # ============================================
 # 2. load_model()
@@ -23,9 +28,35 @@ def load_model(model_path: str = "model/digit_model.h5"):
     
     model = keras_load_model(model_path)
     return model
-
+    
 # ============================================
-# 3. predict_grid()
+# 3. build_model()
+# ============================================
+
+def build_model() -> tf.keras.Model:
+    """Build and compile CNN model for digit recognition (28x28x1 input, 10-class output)."""
+    # Source: https://www.tensorflow.org/tutorials/quickstart/advanced
+    
+    model = models.Sequential([
+        layers.Input(shape=(28, 28, 1)),
+        layers.Conv2D(32, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(64, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Flatten(),
+        layers.Dense(64, activation='relu'),
+        layers.Dense(10, activation='softmax'),
+    ], name="digit_cnn")
+
+    model.compile(
+        optimizer='adam',
+        loss='sparse_categorical_crossentropy',
+        metrics=['accuracy'],
+    )
+    return model
+    
+# ============================================
+# 4. predict_grid()
 # ============================================
 
 def predict_grid(cells: list[np.ndarray], model) -> list[list[int]]:
@@ -46,8 +77,8 @@ def predict_grid(cells: list[np.ndarray], model) -> list[list[int]]:
     digit_classes = np.argmax(predictions, axis=1)
     
     # Step 4: Reshape the flat list of 81 digits into a 9x9 grid
-    # List comprehension: for each row (0 to 8), take 9 digits
-    # digits[i*9 : (i+1)*9] gives row i
-    grid = [digit_classes[i*9:(i+1)*9].tolist() for i in range(9)]
+    # List comprehension: for each row i (0-8), for each column j (0-8)
+    # digit_classes[i*9 + j] gives the j-th element of row i
+    grid = [[int(digit_classes[i*9 + j]) for j in range(9)] for i in range(9)]
     
     return grid
