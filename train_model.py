@@ -226,5 +226,5 @@ plt.ylabel('Loss')
 plt.legend()
 
 plt.tight_layout()
-plt.savefig('training_history.png')
+plt.savefig('model/training_plots.png')
 plt.show()
