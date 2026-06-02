@@ -1,0 +1,16 @@
+# Model files — share via OneDrive/XMU Drive instead
+model/digit_model.h5
+
+# Extracted cells dataset — too large for Git
+data/cells/
+
+# MacOS junk
+__MACOSX/
+.DS_Store
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
