@@ -15,14 +15,11 @@ import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.models import load_model as keras_load_model
 
-# Source: https://www.tensorflow.org/api_docs/python/tf/keras/models/load_model
-# Source: https://numpy.org/doc/stable/reference/generated/numpy.stack.html
-# Source: https://numpy.org/doc/stable/reference/generated/numpy.argmax.html
-
 # ============================================
 # 2. load_model()
 # ============================================
 
+# Source: https://www.tensorflow.org/api_docs/python/tf/keras/models/load_model
 def load_model(model_path: str = "model/digit_model.h5"):
     """Load trained CNN model from disk. Call once at app startup."""
     
@@ -33,9 +30,9 @@ def load_model(model_path: str = "model/digit_model.h5"):
 # 3. build_model()
 # ============================================
 
+# Source: https://www.tensorflow.org/tutorials/quickstart/advanced
 def build_model() -> tf.keras.Model:
     """Build and compile CNN model for digit recognition (28x28x1 input, 10-class output)."""
-    # Source: https://www.tensorflow.org/tutorials/quickstart/advanced
     
     model = models.Sequential([
         layers.Input(shape=(28, 28, 1)),
@@ -59,6 +56,8 @@ def build_model() -> tf.keras.Model:
 # 4. predict_grid()
 # ============================================
 
+# Source: https://numpy.org/doc/stable/reference/generated/numpy.stack.html
+# Source: https://numpy.org/doc/stable/reference/generated/numpy.argmax.html
 def predict_grid(cells: list[np.ndarray], model) -> list[list[int]]:
     """Predict 81 cell images, return 9x9 digit grid. 0 = empty cell."""
     
