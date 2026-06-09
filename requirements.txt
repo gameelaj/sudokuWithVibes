@@ -1,0 +1,24 @@
+# PhotoSudoku — Full Project Dependencies
+# Install with: pip install -r requirements.txt
+#
+# Python 3.10+ recommended.
+# Tested with TensorFlow 2.21.
+
+# Web UI
+streamlit
+
+# Image processing
+opencv-python
+Pillow>=9.1          # >= 9.1 required for .webp support
+
+# Machine learning
+tensorflow>=2.10
+numpy
+
+# Training pipeline
+matplotlib
+scikit-learn         # compute_class_weight for class imbalance
+tqdm                 # progress bars during cell extraction
+
+# UI data display
+pandas
