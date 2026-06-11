@@ -17,7 +17,7 @@ import numpy as np
 
 from app.image_processor import load_image_from_upload, extract_cells
 from app.digit_recognizer import load_model, predict_grid
-from app.solver import solve, get_hint, find_empty
+from app.solver import solve, get_hint, find_empty, is_valid
 import pandas as pd
 
 
@@ -188,6 +188,40 @@ div[data-testid="stAlert"] {
 .pipeline-step.done { background:rgba(0,230,118,0.12); color:#00e676; border:1px solid rgba(0,230,118,0.3); }
 .pipeline-step.fail { background:rgba(255,82,82,0.12); color:#ff5252; border:1px solid rgba(255,82,82,0.3); }
 .pipeline-step.wait { background:rgba(255,255,255,0.05); color:rgba(224,224,224,0.4); border:1px solid rgba(255,255,255,0.1); }
+
+/* Play grid: hide stepper buttons, style inputs */
+div[data-testid="stNumberInputContainer"] button {
+    display: none !important;
+}
+div[data-testid="stNumberInputContainer"] input[type="number"] {
+    text-align: center !important;
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
+    height: 50px !important;
+    color: #00e676 !important;
+    background: rgba(18,18,36,0.9) !important;
+    border: 1px solid rgba(0,230,118,0.2) !important;
+    border-radius: 8px !important;
+    padding: 0 !important;
+}
+div[data-testid="stNumberInputContainer"] input[type="number"]:focus {
+    border-color: #00e676 !important;
+    box-shadow: 0 0 10px rgba(0,230,118,0.25) !important;
+}
+.sudoku-given {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 50px;
+    width: 100%;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #ffffff;
+    background: rgba(30,30,55,0.95);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    margin-top: 4px;
+}
 </style>
 """
 
@@ -229,9 +263,57 @@ def _render_stats():
 
 
 def _display_grid(grid_matrix):
-    """Editable 9×9 grid using st.data_editor."""
+    """
+    Render the 9×9 Sudoku grid in two parts:
+
+      1. A read-only HTML table — proper Sudoku look with thick borders at
+         every 3×3 box boundary and thin lines between individual cells.
+         Empty cells (value 0) show a dim dot so the structure is clear.
+
+      2. A compact st.data_editor below — for correcting recognition errors
+         or filling in digits during play. Its return value is what callers
+         use (same interface as before, nothing else changes).
+
+    Returns
+    -------
+    list[list[int]]  —  9×9 grid reflecting any edits the user made.
+    """
+
+    # 1. Build the HTML visual grid.
+    rows_html = ""
+    for r in range(9):
+        cells_html = ""
+        for c in range(9):
+            val = grid_matrix[r][c]
+            display = str(val) if val != 0 else "·"
+            color = "#ffffff" if val != 0 else "rgba(255,255,255,0.18)"
+
+            bt = "3px solid rgba(0,230,118,0.75)" if r % 3 == 0 else "1px solid rgba(255,255,255,0.08)"
+            bl = "3px solid rgba(0,230,118,0.75)" if c % 3 == 0 else "1px solid rgba(255,255,255,0.08)"
+            bb = "3px solid rgba(0,230,118,0.75)" if r == 8 else "none"
+            br = "3px solid rgba(0,230,118,0.75)" if c == 8 else "none"
+
+            cells_html += (
+                f'<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;'
+                f'font-size:1.3rem;font-weight:700;color:{color};background:rgba(0,0,0,0.18);'
+                f'border-top:{bt};border-left:{bl};border-bottom:{bb};border-right:{br};">{display}</div>'
+            )
+        rows_html += f'<div style="display:flex;">{cells_html}</div>'
+
+    st.markdown(
+        f'<div style="display:flex;justify-content:center;margin:8px 0 10px 0;">'
+        f'<div style="padding:8px;border-radius:12px;background:rgba(255,255,255,0.03);">{rows_html}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    # 2. Editable grid (used to capture corrections / player moves).
+    st.caption("Double-click any cell to edit · use 0 for empty")
     df = pd.DataFrame(grid_matrix, columns=[f"C{i}" for i in range(1, 10)])
-    config = {f"C{i}": st.column_config.NumberColumn(min_value=0, max_value=9, step=1, label="") for i in range(1, 10)}
+    config = {
+        f"C{i}": st.column_config.NumberColumn(min_value=0, max_value=9, step=1, label="")
+        for i in range(1, 10)
+    }
     edited = st.data_editor(df, column_config=config, hide_index=True, use_container_width=True)
     return edited.values.tolist()
 
@@ -264,12 +346,15 @@ def _run_pipeline(uploaded_file) -> tuple:
     try:
         uploaded_file.seek(0)
         bgr = load_image_from_upload(uploaded_file)
+        print(f"DEBUG step1: image loaded, shape={bgr.shape}")
     except Exception as e:
         return None, f"Could not read image: {e}"
 
     # Step 2 — detect grid & extract cells
     try:
+        print("DEBUG step2: starting extract_cells")
         cells = extract_cells(bgr)
+        print(f"DEBUG step2: got {len(cells)} cells")
     except ValueError as e:
         return None, str(e)
     except Exception as e:
@@ -277,8 +362,10 @@ def _run_pipeline(uploaded_file) -> tuple:
 
     # Step 3 — load model & recognise digits
     try:
-        model = load_model()
+        print("DEBUG step3: starting predict_grid")
+        model = st.session_state.get("model") or load_model()
         grid = predict_grid(cells, model)
+        print("DEBUG step3: grid done")
     except FileNotFoundError as e:
         return None, str(e)
     except Exception as e:
@@ -391,6 +478,7 @@ def _page_upload():
                         st.session_state.original_matrix = copy.deepcopy(grid)
                         st.session_state.scan_error = None
                         st.session_state.scan_success = True
+                        st.rerun()
 
             if st.session_state.scan_error:
                 st.error(f"Scan failed: {st.session_state.scan_error}")
@@ -421,6 +509,104 @@ def _page_upload():
             st.rerun()
 
 
+def _sync_play_keys(grid, original_matrix):
+    """
+    After hint/solve updates the board, push new values into the
+    play_{r}_{c} session_state keys so number_input widgets update.
+    """
+    for r in range(9):
+        for c in range(9):
+            if original_matrix[r][c] == 0:
+                st.session_state[f"play_{r}_{c}"] = int(grid[r][c])
+
+
+def _apply_pending_play_sync():
+    """Apply queued play-widget values before the grid widgets are created."""
+    pending_grid = st.session_state.pop("_pending_play_sync_grid", None)
+    pending_original = st.session_state.pop("_pending_play_sync_original", None)
+    if pending_grid is None or pending_original is None:
+        return
+
+    for r in range(9):
+        for c in range(9):
+            if pending_original[r][c] == 0:
+                st.session_state[f"play_{r}_{c}"] = int(pending_grid[r][c])
+
+
+def _display_play_grid(grid_matrix, original_matrix):
+    """
+    Interactive 9x9 play grid.
+
+    Given cells are rendered as fixed HTML blocks.
+    Player cells use number_input widgets.
+    Invalid cells show a red x marker.
+    """
+    widths = [1, 1, 1, 0.06, 1, 1, 1, 0.06, 1, 1, 1]
+    cell_pos = [0, 1, 2, 4, 5, 6, 8, 9, 10]
+
+    for r in range(9):
+        for c in range(9):
+            if original_matrix[r][c] == 0:
+                key = f"play_{r}_{c}"
+                if key not in st.session_state:
+                    st.session_state[key] = int(grid_matrix[r][c])
+
+    current = [row[:] for row in original_matrix]
+    for r in range(9):
+        for c in range(9):
+            if original_matrix[r][c] == 0:
+                current[r][c] = int(st.session_state.get(f"play_{r}_{c}", 0))
+
+    invalid_cells = set()
+    for r in range(9):
+        for c in range(9):
+            val = current[r][c]
+            if original_matrix[r][c] == 0 and val != 0 and not is_valid(current, r, c, val):
+                invalid_cells.add((r, c))
+
+    for r in range(9):
+        if r in [3, 6]:
+            st.markdown("---")
+
+        cols = st.columns(widths)
+        with cols[3]:
+            st.markdown('<div style="height:52px;background:rgba(0,230,118,0.45);border-radius:2px;"></div>', unsafe_allow_html=True)
+        with cols[7]:
+            st.markdown('<div style="height:52px;background:rgba(0,230,118,0.45);border-radius:2px;"></div>', unsafe_allow_html=True)
+
+        for c in range(9):
+            with cols[cell_pos[c]]:
+                if original_matrix[r][c] != 0:
+                    st.markdown(
+                        f'<div class="sudoku-given">{original_matrix[r][c]}</div>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.number_input(
+                        "",
+                        min_value=0,
+                        max_value=9,
+                        step=1,
+                        key=f"play_{r}_{c}",
+                        label_visibility="collapsed",
+                    )
+                    if (r, c) in invalid_cells:
+                        st.markdown('<div style="color:#ff5252;text-align:center;font-weight:800;">x</div>', unsafe_allow_html=True)
+
+    player_filled = sum(
+        1
+        for r in range(9)
+        for c in range(9)
+        if original_matrix[r][c] == 0 and current[r][c] != 0
+    )
+    if invalid_cells:
+        st.error(f"{len(invalid_cells)} cell(s) conflict - marked x")
+    elif player_filled > 0:
+        st.success("All filled cells are valid so far")
+
+    return current
+
+
 def _page_play():
     _page_dots(2)
     st.markdown('<div class="section-title-center">Game Arena</div>', unsafe_allow_html=True)
@@ -430,9 +616,10 @@ def _page_play():
     _render_timer()
 
     # ── Grid ─────────────────────────────────────────────────────────────────
-    _, grid_col, _ = st.columns([1, 2, 1])
-    with grid_col:
-        updated_board = _display_grid(st.session_state.matrix)
+    updated_board = _display_play_grid(
+        st.session_state.matrix,
+        st.session_state.original_matrix,
+    )
 
     st.write("")
 
@@ -453,6 +640,9 @@ def _page_play():
                 val = get_hint(st.session_state.original_matrix, row, col)
                 if val:
                     st.session_state.matrix[row][col] = val
+                    for rr in range(9):
+                        for cc in range(9):
+                            st.session_state.pop(f"play_{rr}_{cc}", None)
                     st.session_state.stats_hints += 1
                     st.success(f"Hint: Cell ({row+1}, {col+1}) = {val}")
                     st.rerun()
@@ -466,6 +656,9 @@ def _page_play():
             solution = copy.deepcopy(st.session_state.original_matrix)
             if solve(solution):
                 st.session_state.matrix = solution
+                for rr in range(9):
+                    for cc in range(9):
+                        st.session_state.pop(f"play_{rr}_{cc}", None)
                 st.session_state.stats_wins += 1
                 st.success("Puzzle Solved!")
                 st.rerun()
@@ -479,6 +672,9 @@ def _page_play():
         if st.button("Restart Scan", use_container_width=True):
             st.session_state.stats_losses += 1
             st.session_state.current_page = "front"
+            for r in range(9):
+                for c in range(9):
+                    st.session_state.pop(f"play_{r}_{c}", None)
             st.session_state.pop("matrix", None)
             st.session_state.pop("original_matrix", None)
             st.session_state.pop("timer_start", None)

@@ -9,10 +9,12 @@
 # =============================================================================
 
 import os
-import numpy as np
 
-# Lazy-import tensorflow so Streamlit starts fast even if TF takes a moment
-_model_cache = None
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+import numpy as np
+import streamlit as st
 
 # Default model path relative to the project root
 _DEFAULT_MODEL_PATH = os.path.join(
@@ -23,6 +25,7 @@ _DEFAULT_MODEL_PATH = os.path.join(
 
 # ── Model Loading ─────────────────────────────────────────────────────────────
 
+@st.cache_resource
 def load_model(model_path: str = None):
     """
     Load the trained CNN from disk. Results are cached globally so subsequent
@@ -38,10 +41,6 @@ def load_model(model_path: str = None):
     -------
     tf.keras.Model
     """
-    global _model_cache
-    if _model_cache is not None:
-        return _model_cache
-
     import tensorflow as tf
     path = model_path or _DEFAULT_MODEL_PATH
     if not os.path.exists(path):
@@ -49,8 +48,7 @@ def load_model(model_path: str = None):
             f"Model not found at: {path}\n"
             "Run  python model/train_model.py  to train and save it first."
         )
-    _model_cache = tf.keras.models.load_model(path)
-    return _model_cache
+    return tf.keras.models.load_model(path)
 
 
 # ── Inference ─────────────────────────────────────────────────────────────────
@@ -75,11 +73,15 @@ def predict_grid(cells: list, model=None) -> list:
     if model is None:
         model = load_model()
 
-    # Stack into a single batch: (81, 28, 28, 1)
-    batch = np.stack(cells)  # already float32, already normalized
+    import tensorflow as tf
 
-    # Run inference — output shape: (81, 10)
-    predictions = model.predict(batch, verbose=0)
+    # Stack into a single batch: (81, 28, 28, 1)
+    batch = np.stack(cells).astype(np.float32)
+
+    tensor = tf.constant(batch)
+
+    # Use direct call instead of model.predict() to avoid Streamlit/Metal deadlocks.
+    predictions = model(tensor, training=False).numpy()
 
     # argmax gives the predicted class (0–9) per cell
     digit_classes = np.argmax(predictions, axis=1)
