@@ -89,6 +89,7 @@ def predict_grid(cells: list, model=None) -> list:
 
 
 # ── 3. Model Building Reference ───────────────────────────────────────────────
+# CNN architecture and layer structure reference: https://youtu.be/cOC-ad0BsY0?si=D_eqApuQ8w3PUrue
 
 def build_model():
     model = models.Sequential([
