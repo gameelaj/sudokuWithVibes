@@ -32,6 +32,7 @@ class SudokuApp(tk.Tk):
 
     def __init__(self):
         super().__init__()
+        # displays the title 
         self.title("SudokuWithVibes")
         self.resizable(False, False)
         self.configure(bg="#f0f0f0")
@@ -56,24 +57,21 @@ class SudokuApp(tk.Tk):
         self._load_grid_into_ui(self.grid_state)
 
   
-    #  UI construction                                                     
+    #builds the widgets and puts them in the window                                                     
     def _build_ui(self):
-        """Builds all widgets and lays them out in the window."""
-
-        # ── Title & caption ──────────────────────────────────────────────
+        # title display
         tk.Label(
-            self, text="SudokuWithVibes",
-            font=("Helvetica", 20, "bold"), bg="#f0f0f0"
+            self, text="SudokuWithVibes", font=("Helvetica", 20, "bold"), bg="#f0f0f0"
         ).pack(pady=(12, 0))
         tk.Label(
-            self, text="Upload a Sudoku photo → Scan → Solve",
-            font=("Helvetica", 10), fg="#555555", bg="#f0f0f0"
+            self, text="Upload a Sudoku photo → Scan → Solve",font=("Helvetica", 10), fg="#555555", bg="#f0f0f0"
         ).pack(pady=(0, 8))
 
-        # ── Upload row (button + filename label) ─────────────────────────
+        # row for uploading the photo and file name display 
         upload_frame = tk.Frame(self, bg="#f0f0f0")
         upload_frame.pack(fill="x", padx=20, pady=(0, 4))
 
+        #upload button display 
         tk.Button(
             upload_frame, text="Upload Sudoku Photo",
             command=self._on_upload, width=22,
@@ -86,11 +84,11 @@ class SudokuApp(tk.Tk):
         )
         self._filename_label.pack(side="left", padx=8)
 
-        # ── Image preview area ───────────────────────────────────────────
+        # area for image preview
         self._img_label = tk.Label(self, bg="#f0f0f0")
         self._img_label.pack(pady=(0, 4))
 
-        # ── Scan button (only useful after uploading) ────────────────────
+        # scan button which would work only after photo is uploaded 
         tk.Button(
             self, text="Scan Image",
             command=self._on_scan, width=22,
@@ -99,24 +97,24 @@ class SudokuApp(tk.Tk):
 
         ttk.Separator(self, orient="horizontal").pack(fill="x", padx=20, pady=4)
 
-        # ── Puzzle grid label & hint ──────────────────────────────────────
+        # label and description for puzzle grid 
         tk.Label(
             self, text="Puzzle Grid",
             font=("Helvetica", 13, "bold"), bg="#f0f0f0"
         ).pack()
         tk.Label(
-            self, text="Use 0 for empty cells · click any cell to edit",
+            self, text="Click any cell to edit",
             font=("Helvetica", 9), fg="#555555", bg="#f0f0f0"
         ).pack(pady=(0, 6))
 
-        # ── 9×9 sudoku grid displayed as nine 3×3 boxes ───────────────────
+        # 9×9 sudoku grid display area 
         self._grid_frame = tk.Frame(self, bg="#333333", bd=2, relief="solid")
         self._grid_frame.pack(padx=20, pady=(0, 8))
         self._build_grid_widgets()
 
         ttk.Separator(self, orient="horizontal").pack(fill="x", padx=20, pady=4)
 
-        # ── Solve / Hint / Reset buttons ──────────────────────────────────
+        # buttons for solving, getting hint and resetting 
         btn_frame = tk.Frame(self, bg="#f0f0f0")
         btn_frame.pack(pady=(4, 14))
 
@@ -138,7 +136,7 @@ class SudokuApp(tk.Tk):
             bg="#e74c3c", fg="black", relief="flat", cursor="hand2"
         ).pack(side="left", padx=6)
 
-        # ── Status bar at the bottom ──────────────────────────────────────
+        # Status bar at the bottom 
         self._status_var = tk.StringVar(value="")
         tk.Label(
             self, textvariable=self._status_var,
@@ -147,7 +145,7 @@ class SudokuApp(tk.Tk):
 
     def _build_grid_widgets(self):
         """Creates 81 Entry widgets arranged as nine 3×3 boxes inside the grid frame."""
-        # iterates over the 3×3 arrangement of boxes (br = box-row, bc = box-col)
+        # iterates over the 3×3 arrangement of boxes; br stands for box row and bc for box column.
         for br in range(3):
             for bc in range(3):
                 # outer frame gives each 3×3 box a visible border
@@ -161,9 +159,10 @@ class SudokuApp(tk.Tk):
                 # inner cells of the 3×3 box
                 for r in range(3):
                     for c in range(3):
-                        row_idx = br * 3 + r  # absolute row in 9×9 grid
-                        col_idx = bc * 3 + c  # absolute column in 9×9 grid
+                        row_idx = br * 3 + r  # row index in 9×9 grid
+                        col_idx = bc * 3 + c  # column index in 9×9 grid
 
+                        # getting the input number from the user for the grid
                         entry = tk.Entry(
                             box_frame,
                             textvariable=self.cell_vars[row_idx][col_idx],
@@ -176,9 +175,9 @@ class SudokuApp(tk.Tk):
                         )
                         entry.grid(row=r, column=c, padx=1, pady=1, ipady=4)
 
-                        # validate input: only digits 0-9 are accepted
+                        # set allowed values entered to be from 0 to 9 
                         vcmd = (self.register(self._validate_cell), "%P")
-                        entry.config(validate="key", validatecommand=vcmd)
+                        entry.config(validate="key", validatecommand=vcmd) # put the number in the grid if is valid
 
                         self.cell_entries[row_idx][col_idx] = entry
 
@@ -188,11 +187,11 @@ class SudokuApp(tk.Tk):
         for r in range(9):
             for c in range(9):
                 val = grid[r][c]
-                # display 0 as blank so the grid looks like a real sudoku puzzle
+                # display 0 as blank  
                 self.cell_vars[r][c].set("" if val == 0 else str(val))
 
     def _read_grid_from_ui(self):
-        """Reads the current cell values from the UI and returns a 9×9 list-of-lists."""
+        """Reads the current cell values from the UI and returns a 9×9 list."""
         grid = []
         for r in range(9):
             row = []
@@ -203,34 +202,35 @@ class SudokuApp(tk.Tk):
         return grid
 
     @staticmethod
+
+    # function to validate the cell entry 
     def _validate_cell(value_after):
-        """Allows only a single digit (0-9) or an empty string in each cell."""
+        #Allows only a single digit (0-9) or an empty string in each cell.
         return value_after == "" or (value_after.isdigit() and len(value_after) == 1)
 
-    #  Event handlers                                                     
+    #  Opens a file dialog to let the user pick a sudoku photo.                                                    
     def _on_upload(self):
-        """Opens a file dialog to let the user pick a sudoku photo."""
         path = filedialog.askopenfilename(
             title="Select a Sudoku photo",
             filetypes=[("Image files", "*.jpg *.jpeg *.png *.webp"), ("All files", "*.*")]
         )
         if not path:
-            return  # user cancelled the dialog
+            return  # returns if the user cancels to upload any file 
 
         self._uploaded_path = path
         self._filename_label.config(text=path.split("/")[-1])  # show only the filename
 
-        # displays the uploaded photo scaled to fit inside a 300×300 preview box
+        # displays the uploaded photo which fits within 300×300 display box
         img = Image.open(path)
         img.thumbnail((300, 300))
         photo = ImageTk.PhotoImage(img)
         self._img_label.config(image=photo)
-        self._img_label.image = photo  # keep a reference so it isn't garbage-collected
+        self._img_label.image = photo  # keeps a reference to prevent it from being garbage collected 
 
         self._set_status("")
 
     def _on_scan(self):
-        """Reads digits from the uploaded photo using the AI model and fills the grid."""
+        #Reads digits from the uploaded photo using the AI model and fills the grid.
         if not self._uploaded_path:
             messagebox.showwarning("No image", "Please upload a sudoku photo first.")
             return
@@ -269,19 +269,20 @@ class SudokuApp(tk.Tk):
             self._load_grid_into_ui(solution)
             self._set_status("Solved!")
         else:
-            messagebox.showerror("No solution", "No solution found — check the grid for mistakes.")
+            messagebox.showerror("No solution", "No solution found. Check the grid for mistakes.")
 
+    #function to call whenever the hint button is pressed 
     def _on_hint(self):
-        """Fills in one empty cell with the correct value from the solution."""
+        #Correct value is filled starting from the top left empty cell each time the hint button is pressed.
         current = self._read_grid_from_ui()
         self.grid_state = current
 
-        empty = find_empty(current)  # finds the first empty cell in the puzzle
+        empty = find_empty(current)  # sees which cell is empty 
         if not empty:
-            messagebox.showinfo("Complete", "No empty cells — puzzle is complete!")
+            messagebox.showinfo("Complete", "All cells are filled. Puzzle is complete!")
             return
 
-        row, col = empty  # position of the empty cell that will receive the hint
+        row, col = empty  # stores the position of the empty cell where hint will be displayed 
         val = get_hint(self.original, row, col)  # determines the correct answer for that cell
         if val:
             self.grid_state[row][col] = val  # places the answer in the cell
@@ -289,10 +290,10 @@ class SudokuApp(tk.Tk):
             # adds 1 to row and column so the display uses 1-based numbering
             self._set_status(f"Hint: row {row + 1}, col {col + 1} = {val}")
         else:
-            messagebox.showerror("Hint error", "Could not generate a hint — the puzzle may have errors.")
+            messagebox.showerror("Hint error", "Unable to generate a hint, the puzzle may have errors!")
 
+    #Restores the grid to the original puzzle, discarding any user edits
     def _on_reset(self):
-        """Restores the grid to the original puzzle, discarding any user edits."""
         self.grid_state = copy.deepcopy(self.original)  # refers to the copy made of the original grid
         self._load_grid_into_ui(self.grid_state)
         self._set_status("")
