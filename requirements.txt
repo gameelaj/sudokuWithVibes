@@ -1,24 +1,21 @@
-# PhotoSudoku — Full Project Dependencies
+# PhotoSudoku — Full Project Dependencies (Tkinter UI branch)
 # Install with: pip install -r requirements.txt
 #
 # Python 3.10+ recommended.
-# Tested with TensorFlow 2.21.
-
-# Web UI
-streamlit
+# Tested with TensorFlow 2.15.
+#
+# Note: tkinter is included with Python by default — no extra install needed.
+# Run the app with: python main.py
 
 # Image processing
 opencv-python
 Pillow>=9.1          # >= 9.1 required for .webp support
 
 # Machine learning
-tensorflow>=2.10
+tensorflow-cpu>=2.12  # use tensorflow-cpu to avoid GPU/CUDA driver issues
 numpy
 
 # Training pipeline
 matplotlib
 scikit-learn         # compute_class_weight for class imbalance
 tqdm                 # progress bars during cell extraction
-
-# UI data display
-pandas
