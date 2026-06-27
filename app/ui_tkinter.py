@@ -85,34 +85,43 @@ class SudokuApp(tk.Tk):
         self._filename_label.pack(side="left", padx=8)
 
         # area for image preview
-        self._img_label = tk.Label(self, bg="#f0f0f0")
+        # main container frame
+        main_container = tk.Frame(self, bg="#f0f0f0")
+        main_container.pack(padx=20, pady=4)
+
+        # left side frame for image preview and scan button
+        left_frame = tk.Frame(main_container, bg="#f0f0f0")
+        left_frame.pack(side="left", padx=10, anchor="center")
+
+        # area for image preview
+        self._img_label = tk.Label(left_frame, bg="#f0f0f0")
         self._img_label.pack(pady=(0, 4))
 
         # scan button which would work only after photo is uploaded 
-        tk.Button(
-            self, text="Scan Image",
+        self._scan_btn = tk.Button(
+            left_frame, text="Scan Image",
             command=self._on_scan, width=22,
             bg="#2ecc71", fg="black", relief="flat", cursor="hand2"
-        ).pack(pady=(0, 10))
+        )
 
-        ttk.Separator(self, orient="horizontal").pack(fill="x", padx=20, pady=4)
+        # right side frame for the sudoku puzzle grid
+        right_frame = tk.Frame(main_container, bg="#f0f0f0")
+        right_frame.pack(side="left", padx=10, anchor="center")
 
         # label and description for puzzle grid 
         tk.Label(
-            self, text="Puzzle Grid",
+            right_frame, text="Puzzle Grid",
             font=("Helvetica", 13, "bold"), bg="#f0f0f0"
         ).pack()
         tk.Label(
-            self, text="Click any cell to edit",
+            right_frame, text="Click any cell to edit",
             font=("Helvetica", 9), fg="#555555", bg="#f0f0f0"
         ).pack(pady=(0, 6))
 
         # 9×9 sudoku grid display area 
-        self._grid_frame = tk.Frame(self, bg="#333333", bd=2, relief="solid")
+        self._grid_frame = tk.Frame(right_frame, bg="#333333", bd=2, relief="solid")
         self._grid_frame.pack(padx=20, pady=(0, 8))
         self._build_grid_widgets()
-
-        ttk.Separator(self, orient="horizontal").pack(fill="x", padx=20, pady=4)
 
         # buttons for solving, getting hint and resetting 
         btn_frame = tk.Frame(self, bg="#f0f0f0")
@@ -226,7 +235,8 @@ class SudokuApp(tk.Tk):
         photo = ImageTk.PhotoImage(img)
         self._img_label.config(image=photo)
         self._img_label.image = photo  # keeps a reference to prevent it from being garbage collected 
-
+         
+        self._scan_btn.pack(pady=(10, 0))# the scan button aappears once the image is uploaded 
         self._set_status("")
 
     def _on_scan(self):
