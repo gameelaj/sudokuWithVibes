@@ -183,6 +183,7 @@ class SudokuApp(tk.Tk):
                             insertbackground="#222222",
                         )
                         entry.grid(row=r, column=c, padx=1, pady=1, ipady=4)
+                        entry.bind("<KeyRelease>", lambda e: self._check_solution()) # activates the _check_solution automatically without the user having to press any button 
 
                         # set allowed values entered to be from 0 to 9 
                         vcmd = (self.register(self._validate_cell), "%P")
@@ -216,6 +217,34 @@ class SudokuApp(tk.Tk):
     def _validate_cell(value_after):
         #Allows only a single digit (0-9) or an empty string in each cell.
         return value_after == "" or (value_after.isdigit() and len(value_after) == 1)
+
+    # checks whether the user has enetered correct solution for each grid and returns the wrong cells if any 
+    def _check_solution(self):
+        if getattr(self, "_solved_by_app", False):
+            return  # no checking required as it was solved by the program, hence checking is skipped 
+        
+        current = self._read_grid_from_ui() # gets the state of the grid after user fills in 
+
+        # checks whether there are empty cells, if yes it returns until user fills in all grids 
+        if any(current[r][c] == 0 for r in range(9) for c in range(9)):
+            return
+
+        # solves the original grid so that it can compare with the user filled values 
+        correct = copy.deepcopy(self.original)
+        if not solve(correct):
+            return
+
+        # detects the wrong emtry by comparing it with correct and stores those values in a list
+        wrong = [
+            f"row {r+1}, col {c+1}"
+            for r in range(9)
+            for c in range(9)
+            if current[r][c] != correct[r][c]
+        ]
+        if not wrong:
+            self._set_status("Puzzle complete! All cells are correct!") # executes only if all cell entries are correct 
+        else:
+            self._set_status(f"Incorrect cells found: {len(wrong)} cell(s) are wrong.")
 
     #  Opens a file dialog to let the user pick a sudoku photo.                                                    
     def _on_upload(self):
@@ -274,8 +303,16 @@ class SudokuApp(tk.Tk):
         current = self._read_grid_from_ui()
         solution = copy.deepcopy(current)
 
+        # receives the correct answer from the puzzle solved 
+        correct = copy.deepcopy(self.original)
+        
         if solve(solution):
+            # compares whether the solution matches the correct answer 
+            if solution != correct:
+                self._set_status("Wrong numbers in the grid — solution doesn't match the original puzzle.")
+                return
             self.grid_state = solution
+            self._solved_by_app = True  # causes the checking to be skipped if the program solved itself
             self._load_grid_into_ui(solution)
             self._set_status("Solved!")
         else:
@@ -304,6 +341,7 @@ class SudokuApp(tk.Tk):
 
     #Restores the grid to the original puzzle, discarding any user edits
     def _on_reset(self):
+        self._solved_by_app = False  # causes the checking again after the user presses reset 
         self.grid_state = copy.deepcopy(self.original)  # refers to the copy made of the original grid
         self._load_grid_into_ui(self.grid_state)
         self._set_status("")
