@@ -306,11 +306,13 @@ class SudokuApp(tk.Tk):
         # receives the correct answer from the puzzle solved 
         correct = copy.deepcopy(self.original)
         
+        #checks whether the user has entered incorrect answer
         if solve(solution):
-            # compares whether the solution matches the correct answer 
-            if solution != correct:
-                self._set_status("Wrong numbers in the grid — solution doesn't match the original puzzle.")
-                return
+            for r in range(9):
+                for c in range(9):
+                    if correct[r][c] != 0 and solution[r][c] != correct[r][c]:
+                        self._set_status("Wrong numbers in the grid — solution doesn't match the original puzzle.")
+                        return
             self.grid_state = solution
             self._solved_by_app = True  # causes the checking to be skipped if the program solved itself
             self._load_grid_into_ui(solution)
